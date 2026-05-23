@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity | Self-Plagiarism Detector</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <svg viewBox="0 0 24 24" width="32" height="32">
+                    <path fill="currentColor" d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.26,6.33l-1.3,1.3A1,1,0,0,0,3.67,21.07l2-2A9.9,9.9,0,0,0,12,22a10,10,0,0,0,10-10A10,10,0,0,0,12,2Zm0,18a8,8,0,0,1-5.66-2.34L16.5,7.5a1,1,0,0,0-1.41-1.41L4.93,16.24A8,8,0,1,1,12,20Z"/>
+                </svg>
+                <span>Antigravity</span>
+            </div>
+            <h1>Self-Plagiarism Detector</h1>
+            <p class="subtitle">Identify redundant, duplicated, and paraphrased content within a single document</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="grid-main">
+            <!-- Left Side: Config & Upload -->
+            <section class="card config-card">
+                <h2 class="card-title">Analysis Settings</h2>
+                
+                <!-- Upload Dropzone -->
+                <div class="form-group">
+                    <label>Upload Document</label>
+                    <div id="dropzone" class="dropzone">
+                        <input type="file" id="file-input" accept=".txt,.docx,.pdf" hidden>
+                        <div class="dz-content" id="dz-prompt">
+                            <div class="dz-icon">
+                                <svg viewBox="0 0 24 24" width="48" height="48">
+                                    <path fill="currentColor" d="M19.35,10.04C18.67,6.59,15.64,4,12,4C9.11,4,6.6,5.64,5.35,8.04C2.34,8.36,0,10.91,0,14c0,3.31,2.69,6,6,6h13c2.76,0,5-2.24,5-5C24,12.36,21.95,10.22,19.35,10.04z M19,18H6c-2.21,0-4-1.79-4-4c0-2.05,1.53-3.76,3.56-3.97l1.07-0.11l0.5-0.95C8.08,7.14,9.94,6,12,6c2.62,0,4.88,1.86,5.39,4.43l0.3,1.5l1.53,0.11c1.56,0.1,2.78,1.41,2.78,2.96C22,16.79,20.65,18,19,18z M8,13h2.55v3h2.9v-3H16l-4-4L8,13z"/>
+                                </svg>
+                            </div>
+                            <p class="dz-text">Drag & drop your file here, or <span class="highlight">browse</span></p>
+                            <p class="dz-sub">Supports .txt, .docx, .pdf</p>
+                        </div>
+                        <div class="dz-content hidden" id="dz-file-selected">
+                            <div class="file-icon-wrapper">
+                                <svg viewBox="0 0 24 24" width="40" height="40" class="file-svg">
+                                    <path fill="currentColor" d="M14,2H6A2,2,0,0,0,4,4V20a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V8Zm2,16H8V16h8Zm0-4H8V12h8Zm-3-5V3.5L18.5,9Z"/>
+                                </svg>
+                            </div>
+                            <p class="file-name" id="selected-file-name">document.pdf</p>
+                            <p class="file-size" id="selected-file-size">145 KB</p>
+                            <button type="button" class="btn btn-remove" id="btn-remove-file">
+                                Remove File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Match Threshold -->
+                <div class="form-group">
+                    <div class="label-row">
+                        <label for="threshold-slider">Similarity Threshold</label>
+                        <span class="value-badge" id="threshold-val">80%</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="threshold-slider" min="1" max="100" value="80" class="slider">
+                    </div>
+                    <p class="help-text">Flag text segments with a matching percentage higher than this value.</p>
+                </div>
+
+                <!-- Segmentation Unit -->
+                <div class="form-group">
+                    <label>Segmentation Unit</label>
+                    <div class="segment-selector">
+                        <label class="segment-option">
+                            <input type="radio" name="unit" value="sentence" checked>
+                            <span class="segment-btn">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path fill="currentColor" d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm1,15H11V15h2Zm0-4H11V7h2Z"/>
+                                </svg>
+                                Sentence
+                            </span>
+                        </label>
+                        <label class="segment-option">
+                            <input type="radio" name="unit" value="paragraph">
+                            <span class="segment-btn">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path fill="currentColor" d="M3,5H21V7H3V5ZM3,9H21v2H3V9Zm0,4H21v2H3V13Zm0,4H21v2H3V17Z"/>
+                                </svg>
+                                Paragraph
+                            </span>
+                        </label>
+                    </div>
+                    <p class="help-text">Sentences provide granular results; paragraphs find broader content replication.</p>
+                </div>
+
+                <!-- Run Button -->
+                <button type="button" id="btn-analyze" class="btn btn-primary btn-block" disabled>
+                    <span class="btn-text">Run Detector</span>
+                </button>
+            </section>
+
+            <!-- Right Side: Status/Results placeholder -->
+            <section class="results-container">
+                <!-- Welcome/Instruction View -->
+                <div class="card placeholder-card" id="results-welcome">
+                    <div class="placeholder-icon">
+                        <svg viewBox="0 0 24 24" width="64" height="64">
+                            <path fill="currentColor" d="M19,3H5C3.9,3,3,3.9,3,5V19c0,1.1,0.9,2,2,2H19c1.1,0,2-0.9,2-2V5C21,3.9,20.1,3,19,3z M19,19H5V5H19V19z M16.5,7.5h-9v1.5h9V7.5z M16.5,10.5h-9v1.5h9V10.5z M16.5,13.5h-9v1.5h9V13.5z"/>
+                        </svg>
+                    </div>
+                    <h3>Awaiting Analysis</h3>
+                    <p>Upload a document and click "Run Detector" to review self-plagiarism scores and matched content.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div class="card placeholder-card hidden" id="results-loading">
+                    <div class="spinner"></div>
+                    <h3>Analyzing Document</h3>
+                    <p id="loading-msg">Extracting text and running semantic comparisons...</p>
+                </div>
+
+                <!-- Error State -->
+                <div class="card placeholder-card error-card hidden" id="results-error">
+                    <div class="error-icon">
+                        <svg viewBox="0 0 24 24" width="64" height="64">
+                            <path fill="currentColor" d="M12,2C6.47,2,2,6.47,2,12s4.47,10,10,10s10-4.47,10-10S17.53,2,12,2z M13,17h-2v-2h2V17z M13,13h-2V7h2V13z"/>
+                        </svg>
+                    </div>
+                    <h3>Analysis Failed</h3>
+                    <p id="error-msg-text">An error occurred while parsing the document.</p>
+                    <button type="button" class="btn btn-outline" id="btn-error-retry">Dismiss</button>
+                </div>
+
+                <!-- Results Dashboard (Hidden Initially) -->
+                <div class="results-dashboard hidden" id="results-dashboard">
+                    <!-- Overview Metrics Grid -->
+                    <div class="metrics-grid">
+                        <!-- Plagiarism Score Card -->
+                        <div class="card metric-card">
+                            <p class="metric-label">Plagiarism Score</p>
+                            <div class="score-visualization">
+                                <svg class="progress-ring" width="120" height="120">
+                                    <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.06)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                    <circle id="score-ring" class="progress-ring-fill" stroke="url(#scoreGrad)" stroke-width="10" stroke-linecap="round" fill="transparent" r="50" cx="60" cy="60"/>
+                                    <defs>
+                                        <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#8b5cf6" />
+                                            <stop offset="100%" stop-color="#6366f1" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                <span class="score-text" id="score-pct-text">0.0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Severity Rating Card -->
+                        <div class="card metric-card">
+                            <p class="metric-label">Severity Level</p>
+                            <div class="severity-box" id="severity-badge-container">
+                                <span id="severity-text" class="severity-text-val">Low</span>
+                            </div>
+                            <p class="severity-description" id="severity-desc">Very little or no repeated content detected.</p>
+                        </div>
+
+                        <!-- Document Details Card -->
+                        <div class="card metric-card doc-details-card">
+                            <p class="metric-label">Document Details</p>
+                            <div class="doc-details-list">
+                                <div class="detail-item">
+                                    <span class="detail-name">Filename:</span>
+                                    <span class="detail-val" id="res-filename">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-name">Unit Type:</span>
+                                    <span class="detail-val" id="res-unit">-</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-name">Total Units:</span>
+                                    <span class="detail-val" id="res-total-units">0</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-name">Duplicate Pairs:</span>
+                                    <span class="detail-val" id="res-pairs-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notice / Empty state warnings -->
+                    <div id="results-notice-box" class="card notice-card hidden">
+                        <div class="notice-icon">
+                            <svg viewBox="0 0 24 24" width="20" height="20">
+                                <path fill="currentColor" d="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10s10-4.48,10-10S17.52,2,12,2z M13,16h-2v-6h2V16z M13,8h-2V6h2V8z"/>
+                            </svg>
+                        </div>
+                        <span id="results-notice-text">Notice message</span>
+                    </div>
+
+                    <!-- Duplicate Content Section -->
+                    <div class="card duplicates-card">
+                        <h3 class="section-title">Flagged Duplicate Pairs</h3>
+                        <div id="duplicates-list" class="duplicates-list">
+                            <!-- Match items populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- JavaScript Link -->
+    <script src="app.js"></script>
+</body>
+</html>

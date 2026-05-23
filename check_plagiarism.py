@@ -54,6 +54,9 @@ try:
 except ImportError:
     SentenceTransformer = None
 
+# Global cache for loaded sentence transformer models to avoid loading on every API call
+_TRANSFORMER_MODELS = {}
+
 # ANSI colors for terminal output
 COLOR_RESET = "\033[0m"
 COLOR_BOLD = "\033[1m"
@@ -207,7 +210,7 @@ def segment_text(text, unit='sentence'):
         return segments
 
 
-def calculate_similarities(segments, threshold_pct, use_semantic_model=False, model_name=None):
+def calculate_similarities(segments, threshold_pct, use_semantic_model=True, model_name=None):
     """
     Compares every segment against every other segment.
     Flags pairs with similarity >= threshold.
@@ -224,7 +227,11 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=False, mo
     # 1. Semantic Embedding / Matrix Computation
     if use_semantic_model and SentenceTransformer is not None:
         try:
-            model = SentenceTransformer(model_name or 'all-MiniLM-L6-v2')
+            name = model_name or 'all-MiniLM-L6-v2'
+            if name not in _TRANSFORMER_MODELS:
+                print(f"Loading sentence-transformers model '{name}'...", file=sys.stderr)
+                _TRANSFORMER_MODELS[name] = SentenceTransformer(name)
+            model = _TRANSFORMER_MODELS[name]
             embeddings = model.encode(texts, show_progress_bar=False)
             semantic_matrix = cosine_similarity(embeddings)
         except Exception as e:
@@ -252,20 +259,28 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=False, mo
             except Exception:
                 semantic_matrix = None
 
-    # Pre-calculate lowercase clean word sets and lengths
+    # Pre-calculate lowercase clean word sets, lengths, and validity (boilerplate/length check)
     word_sets = []
     word_counts = []
+    is_valid_segment = []
     for s in segments:
         clean = re.sub(r'[^\w\s]', '', s['text'].lower())
         words = clean.split()
         word_sets.append(set(words))
         word_counts.append(len(words))
+        # Exclude segments that have fewer than 5 words and are shorter than 25 characters to prevent boilerplate flags
+        is_valid_segment.append(len(words) >= 5 and len(s['text']) >= 25)
 
     flagged_pairs = []
     duplicate_indices = set()  # Indices of segments that are flagged as duplicate
     
     for i in range(n_segments):
+        if not is_valid_segment[i]:
+            continue
         for j in range(i + 1, n_segments):
+            if not is_valid_segment[j]:
+                continue
+                
             text_i = texts[i]
             text_j = texts[j]
             
@@ -296,7 +311,30 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=False, mo
                 # If TF-IDF is not available, use Jaccard similarity as semantic proxy
                 semantic_score = jaccard
                 
-            combined_score = max(near_exact_score, semantic_score)
+            # Define combined score logic
+            if semantic_matrix is not None and use_semantic_model:
+                # High Accuracy NLP (Sentence Transformers)
+                if clean_i == clean_j:
+                    combined_score = 1.0
+                else:
+                    # Rely directly on the contextual NLP embedding similarity.
+                    # Prevent word-repetition false positives: do not use max(near_exact, semantic)
+                    # unless near_exact is exceptionally high (e.g. 0.95+).
+                    if near_exact_score >= 0.95:
+                        combined_score = max(near_exact_score, semantic_score)
+                    else:
+                        combined_score = semantic_score
+            else:
+                # Fallback NLP (TF-IDF / Jaccard)
+                if clean_i == clean_j:
+                    combined_score = 1.0
+                else:
+                    # Prevent word-repetition only flags: require both a high sequence match (difflib)
+                    # AND high TF-IDF similarity to consider it plagiarism.
+                    if near_exact_score >= 0.70 and semantic_score >= threshold:
+                        combined_score = max(near_exact_score, semantic_score)
+                    else:
+                        combined_score = 0.0
             
             if combined_score >= threshold:
                 flagged_pairs.append({
@@ -319,6 +357,7 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=False, mo
     overall_score = duplicate_words / total_words if total_words > 0 else 0.0
     
     return flagged_pairs, overall_score, duplicate_indices
+
 
 
 def truncate_text(text, max_len=100):

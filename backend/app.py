@@ -90,7 +90,7 @@ def detect_plagiarism():
             })
 
         # 4. Perform analysis
-        flagged_pairs, overall_score, _ = calculate_similarities(segments, threshold)
+        flagged_pairs, overall_score, _ = calculate_similarities(segments, threshold, use_semantic_model=True)
         severity = get_severity(overall_score)
         
         # Format pairs for response

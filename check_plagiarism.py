@@ -222,43 +222,7 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=True, mod
         return [], 0.0, set()
     
     texts = [s['text'] for s in segments]
-    semantic_matrix = None
     
-    # 1. Semantic Embedding / Matrix Computation
-    if use_semantic_model and SentenceTransformer is not None:
-        try:
-            name = model_name or 'all-MiniLM-L6-v2'
-            if name not in _TRANSFORMER_MODELS:
-                print(f"Loading sentence-transformers model '{name}'...", file=sys.stderr)
-                _TRANSFORMER_MODELS[name] = SentenceTransformer(name)
-            model = _TRANSFORMER_MODELS[name]
-            embeddings = model.encode(texts, show_progress_bar=False)
-            semantic_matrix = cosine_similarity(embeddings)
-        except Exception as e:
-            print(f"Warning: Failed to load sentence-transformers model. Falling back to TF-IDF. Error: {e}", file=sys.stderr)
-            use_semantic_model = False
-            
-    if not use_semantic_model or semantic_matrix is None:
-        if TfidfVectorizer is not None and cosine_similarity is not None:
-            try:
-                vectorizer = TfidfVectorizer(stop_words='english', token_pattern=r'(?u)\b\w+\b')
-                tfidf_matrix = vectorizer.fit_transform(texts)
-                semantic_matrix = cosine_similarity(tfidf_matrix)
-                if hasattr(semantic_matrix, 'toarray'):
-                    semantic_matrix = semantic_matrix.toarray()
-            except ValueError:
-                # Vocabulary empty (e.g. only stop words). Fallback to standard tf-idf without stop words
-                try:
-                    vectorizer = TfidfVectorizer(token_pattern=r'(?u)\b\w+\b')
-                    tfidf_matrix = vectorizer.fit_transform(texts)
-                    semantic_matrix = cosine_similarity(tfidf_matrix)
-                    if hasattr(semantic_matrix, 'toarray'):
-                        semantic_matrix = semantic_matrix.toarray()
-                except Exception:
-                    semantic_matrix = None
-            except Exception:
-                semantic_matrix = None
-
     # Pre-calculate lowercase clean word sets, lengths, and validity (boilerplate/length check)
     word_sets = []
     word_counts = []
@@ -288,7 +252,7 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=True, mod
             w_i = word_sets[i]
             w_j = word_sets[j]
             
-            # Word Jaccard
+            # Word Jaccard (percentage of unique words in common)
             union_w = w_i.union(w_j)
             jaccard = len(w_i.intersection(w_j)) / len(union_w) if union_w else 0.0
             
@@ -297,44 +261,13 @@ def calculate_similarities(segments, threshold_pct, use_semantic_model=True, mod
             
             if clean_i == clean_j:
                 near_exact_score = 1.0
-            elif jaccard >= 0.25 or (len(w_i.intersection(w_j)) >= 1 and (len(w_i) <= 3 or len(w_j) <= 3)):
-                # Run difflib SequenceMatcher ratio for near-exact matching
+            else:
+                # SequenceMatcher checks character sequence similarity
                 near_exact_score = difflib.SequenceMatcher(None, clean_i, clean_j).ratio()
-            else:
-                near_exact_score = 0.0
                 
-            # --- Semantic Similarity ---
-            if semantic_matrix is not None:
-                semantic_score = float(semantic_matrix[i][j])
-                semantic_score = max(0.0, min(1.0, semantic_score))
-            else:
-                # If TF-IDF is not available, use Jaccard similarity as semantic proxy
-                semantic_score = jaccard
-                
-            # Define combined score logic
-            if semantic_matrix is not None and use_semantic_model:
-                # High Accuracy NLP (Sentence Transformers)
-                if clean_i == clean_j:
-                    combined_score = 1.0
-                else:
-                    # Rely directly on the contextual NLP embedding similarity.
-                    # Prevent word-repetition false positives: do not use max(near_exact, semantic)
-                    # unless near_exact is exceptionally high (e.g. 0.95+).
-                    if near_exact_score >= 0.95:
-                        combined_score = max(near_exact_score, semantic_score)
-                    else:
-                        combined_score = semantic_score
-            else:
-                # Fallback NLP (TF-IDF / Jaccard)
-                if clean_i == clean_j:
-                    combined_score = 1.0
-                else:
-                    # Prevent word-repetition only flags: require both a high sequence match (difflib)
-                    # AND high TF-IDF similarity to consider it plagiarism.
-                    if near_exact_score >= 0.70 and semantic_score >= threshold:
-                        combined_score = max(near_exact_score, semantic_score)
-                    else:
-                        combined_score = 0.0
+            # Use Jaccard overlap as the word similarity score and SequenceMatcher as the sequence score
+            semantic_score = jaccard
+            combined_score = max(near_exact_score, jaccard)
             
             if combined_score >= threshold:
                 flagged_pairs.append({
